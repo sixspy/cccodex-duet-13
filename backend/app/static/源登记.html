@@ -28,21 +28,60 @@
 
       <section class="行卡">
         <h1>源登记</h1>
-        <p class="说明">左源=渠道回执，右源=核心记账。皮用金融名，去皮只是双轨来源键。</p>
+        <p class="说明">左源=渠道回执，右源=核心记账。皮用金融名，去皮只是双轨来源键。登记新源与重算对齐同票（同一事务，同成败）。</p>
+        <div class="工具条">
+          <label>源键 <input id="源键" style="width:110px" placeholder="渠丁"/></label>
+          <label>轨别 <select id="轨别"><option value="左">左</option><option value="右">右</option></select></label>
+          <label>名称 <input id="名称" style="width:130px" placeholder="渠道回执丁"/></label>
+          <label>说明 <input id="说明" style="width:160px"/></label>
+          <button id="登">登记并重算对齐</button>
+        </div>
+        <pre class="报" id="报"></pre>
       </section>
       <section class="行卡"><div id="表"></div></section>
+
+      <section class="行卡">
+        <h2>多源隔离目录</h2>
+        <p class="说明">多源形态策略与逐键隔离核验（业务键、源列表、差行数、valid），详见「对齐差表」。</p>
+        <div id="形态徽"></div>
+        <div id="隔离表"></div>
+      </section>
 
     </main>
   </div>
   <script src="/common.js"></script>
   <script>
 (async () => {
-  const rows = await get("/api/源登记");
-  document.getElementById("表").innerHTML = 表(
-    ["源键","轨别","名称","说明"],
-    rows,
-    r => `<td>${r.源键}</td><td>${徽(r.轨别)}</td><td>${r.名称}</td><td>${r.说明||""}</td>`
-  );
+  const paint = async () => {
+    const rows = await get("/api/源登记");
+    document.getElementById("表").innerHTML = 表(
+      ["源键","轨别","名称","说明"],
+      rows,
+      r => `<td>${r.源键}</td><td>${徽(r.轨别)}</td><td>${r.名称}</td><td>${r.说明||""}</td>`
+    );
+    const g = await get("/api/多源隔离");
+    document.getElementById("形态徽").innerHTML = 徽("形态:" + g.形态);
+    document.getElementById("隔离表").innerHTML = 表(
+      ["业务键","源列表","差行数","valid"],
+      g.明细,
+      r => `<td>${r.业务键}</td><td>${(r.源列表||[]).join("、")||"-"}</td><td>${r.差行数}</td><td>${徽(r.valid)}</td>`
+    );
+  };
+  await paint();
+  document.getElementById("登").onclick = async () => {
+    const body = {
+      源键: document.getElementById("源键").value,
+      轨别: document.getElementById("轨别").value,
+      名称: document.getElementById("名称").value,
+      说明: document.getElementById("说明").value,
+    };
+    try {
+      document.getElementById("报").textContent = JSON.stringify(await post("/api/源登记", body), null, 2);
+    } catch (e) {
+      document.getElementById("报").textContent = String(e.message || e);
+    }
+    await paint();
+  };
 })();
 </script>
 </body>

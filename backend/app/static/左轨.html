@@ -38,6 +38,13 @@
       </section>
       <section class="行卡"><div id="表"></div></section>
 
+      <section class="行卡">
+        <h2>多源左轨隔离</h2>
+        <p class="说明">多源同键灌左后按形态隔离：复合=对齐键源键+业务键（每源一行差）；合并=同键一行、源明细进只读归档。切换在「对齐差表」。</p>
+        <div id="形态徽"></div>
+        <div id="隔离表"></div>
+      </section>
+
     </main>
   </div>
   <script src="/common.js"></script>
@@ -52,6 +59,13 @@
       ["事件编号","业务键","金额分","源键","命运","事件时","批次"],
       rows,
       r => `<td>${r.事件编号}</td><td>${r.业务键}</td><td>${r.金额分}</td><td>${r.源键}</td><td>${徽(r.命运)}</td><td>${r.事件时}</td><td>${r.批次编号}</td>`
+    );
+    const g = await get("/api/多源隔离");
+    document.getElementById("形态徽").innerHTML = 徽("形态:" + g.形态);
+    document.getElementById("隔离表").innerHTML = 表(
+      ["业务键","源列表","差行数","valid"],
+      g.明细,
+      r => `<td>${r.业务键}</td><td>${(r.源列表||[]).join("、")||"-"}</td><td>${r.差行数}</td><td>${徽(r.valid)}</td>`
     );
   };
   await paint();

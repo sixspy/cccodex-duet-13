@@ -53,7 +53,7 @@
   const o = await get("/api/概览");
   document.getElementById("骨架").textContent = o.骨架 || "";
   document.getElementById("标签").innerHTML = [
-    ["皮", o.皮], ["去皮", o.去皮], ["站名", o.站名]
+    ["皮", o.皮], ["去皮", o.去皮], ["站名", o.站名], ["多源形态", o.多源形态]
   ].map(([k,v]) => `<span class="标签">${k}：${v||"-"}</span>`).join("");
   document.getElementById("水位").innerHTML = 统计([
     ["左轨笔数", o.左笔数], ["右轨笔数", o.右笔数],

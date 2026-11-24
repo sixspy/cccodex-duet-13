@@ -15,10 +15,10 @@ def 跑一次() -> dict:
         差总 = conn.execute("SELECT COUNT(*) AS c FROM 对齐差").fetchone()["c"]
 
         问题 = []
-        # 悬账单业务键应能在对齐差找到左缺/右缺
+        # 悬账单业务键应能在对齐差找到左缺/右缺（按 业务键+源键 同票匹配，多源不串）
         for r in conn.execute("SELECT * FROM 悬账单").fetchall():
             行 = conn.execute(
-                "SELECT 差型 FROM 对齐差 WHERE 业务键=?", (r["业务键"],)
+                "SELECT 差型 FROM 对齐差 WHERE 业务键=? AND 源键=?", (r["业务键"], r["源键"])
             ).fetchone()
             if not 行:
                 问题.append(f"悬账{r['业务键']}无对齐差行")

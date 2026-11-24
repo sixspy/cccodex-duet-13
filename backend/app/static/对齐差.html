@@ -35,25 +35,76 @@
         </div>
         <pre class="报" id="报"></pre>
       </section>
+
+      <section class="行卡">
+        <h2>多源左轨策略</h2>
+        <p class="说明">左轨多源同键须择定形态：<b>复合</b>=对齐键为源键+业务键（同键每源一行差）；
+          <b>合并</b>=同键合并进现行一行、源明细进只读源键归档。切换与重算对齐同票。</p>
+        <div class="工具条">
+          <span id="形态徽"></span>
+          <button class="次" id="切形态"></button>
+        </div>
+        <pre class="报" id="形态报"></pre>
+      </section>
+
+      <section class="行卡">
+        <h2>多源隔离目录</h2>
+        <p class="说明">只读：业务键、左轨源列表、对齐差行数、valid（隔离/合并是否成立）。</p>
+        <div id="隔离表"></div>
+      </section>
+
       <section class="行卡"><div id="表"></div></section>
+
+      <section class="行卡">
+        <h2>源键归档（只读）</h2>
+        <p class="说明">仅合并形态落源明细；复合形态此表为空。</p>
+        <div id="归档表"></div>
+      </section>
 
     </main>
   </div>
   <script src="/common.js"></script>
   <script>
 (async () => {
+  let 形态 = "复合";
+  const paint隔离 = async () => {
+    const g = await get("/api/多源隔离");
+    形态 = g.形态;
+    document.getElementById("形态徽").innerHTML = 徽("形态:" + g.形态);
+    document.getElementById("切形态").textContent = "切换为" + (g.形态 === "复合" ? "合并" : "复合");
+    document.getElementById("隔离表").innerHTML = 表(
+      ["业务键","源列表","差行数","valid"],
+      g.明细,
+      r => `<td>${r.业务键}</td><td>${(r.源列表||[]).join("、")||"-"}</td><td>${r.差行数}</td><td>${徽(r.valid)}</td>`
+    );
+  };
+  const paint归档 = async () => {
+    const rows = await get("/api/源键归档");
+    document.getElementById("归档表").innerHTML = 表(
+      ["编号","业务键","源键","金额分","笔数","时刻"],
+      rows,
+      r => `<td>${r.编号}</td><td>${r.业务键}</td><td>${r.源键}</td><td>${r.金额分}</td><td>${r.笔数}</td><td>${r.时刻}</td>`
+    );
+  };
   const paint = async () => {
     const rows = await get("/api/对齐差");
     document.getElementById("表").innerHTML = 表(
-      ["编号","业务键","左金额分","右金额分","差型","说明","时刻"],
+      ["编号","业务键","源键","左金额分","右金额分","差型","说明","时刻"],
       rows,
-      r => `<td>${r.编号}</td><td>${r.业务键}</td><td>${r.左金额分 ?? "-"}</td><td>${r.右金额分 ?? "-"}</td>
+      r => `<td>${r.编号}</td><td>${r.业务键}</td><td>${r.源键||"-"}</td><td>${r.左金额分 ?? "-"}</td><td>${r.右金额分 ?? "-"}</td>
         <td>${徽(r.差型)}</td><td>${r.说明}</td><td>${r.时刻}</td>`
     );
+    await paint隔离();
+    await paint归档();
   };
   await paint();
   document.getElementById("跑").onclick = async () => {
     document.getElementById("报").textContent = JSON.stringify(await post("/api/对齐/跑"), null, 2);
+    await paint();
+  };
+  document.getElementById("切形态").onclick = async () => {
+    const 目标 = 形态 === "复合" ? "合并" : "复合";
+    document.getElementById("形态报").textContent = JSON.stringify(await post("/api/多源形态", {形态: 目标}), null, 2);
     await paint();
   };
   document.getElementById("刷").onclick = paint;

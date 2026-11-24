@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS 右轨流水 (
 CREATE TABLE IF NOT EXISTS 对齐差 (
   编号 INTEGER PRIMARY KEY AUTOINCREMENT,
   业务键 TEXT NOT NULL,
+  源键 TEXT NOT NULL DEFAULT '',
   左金额分 INTEGER,
   右金额分 INTEGER,
   差型 TEXT NOT NULL,
@@ -44,10 +45,19 @@ CREATE TABLE IF NOT EXISTS 对齐差 (
 CREATE TABLE IF NOT EXISTS 悬账单 (
   编号 INTEGER PRIMARY KEY AUTOINCREMENT,
   业务键 TEXT NOT NULL,
+  源键 TEXT NOT NULL DEFAULT '',
   悬边 TEXT NOT NULL,
   金额分 INTEGER NOT NULL,
   事件编号 TEXT NOT NULL DEFAULT '',
   原因 TEXT NOT NULL,
+  时刻 TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS 源键归档 (
+  编号 INTEGER PRIMARY KEY AUTOINCREMENT,
+  业务键 TEXT NOT NULL,
+  源键 TEXT NOT NULL,
+  金额分 INTEGER NOT NULL,
+  笔数 INTEGER NOT NULL DEFAULT 1,
   时刻 TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS 对拍结论 (
@@ -95,5 +105,18 @@ def 初始化库() -> None:
             "INSERT INTO 源登记(源键,轨别,名称,说明) VALUES (?,?,?,?)",
             ("核乙", "右", "核心记账乙", "核心系统记账流"),
         )
+    # 邻题「多源左轨串扰」迁移：老库补列、补规、补第二左源（幂等）
+    for 表, 列, 定义 in (
+        ("对齐差", "源键", "TEXT NOT NULL DEFAULT ''"),
+        ("悬账单", "源键", "TEXT NOT NULL DEFAULT ''"),
+    ):
+        列集 = [r["name"] for r in conn.execute(f"PRAGMA table_info({表})").fetchall()]
+        if 列 not in 列集:
+            conn.execute(f"ALTER TABLE {表} ADD COLUMN {列} {定义}")
+    conn.execute("INSERT OR IGNORE INTO 轨规(键, 值) VALUES ('多源形态', '复合')")
+    conn.execute(
+        "INSERT OR IGNORE INTO 源登记(源键,轨别,名称,说明) VALUES (?,?,?,?)",
+        ("渠丙", "左", "渠道回执丙", "第二渠道回执流（多源隔离）"),
+    )
     conn.commit()
     conn.close()
